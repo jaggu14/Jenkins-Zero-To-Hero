@@ -2,7 +2,7 @@ pipeline {
     agent any
     tools {
         // Uncomment and adjust if needed
-        // jfrog "jfrogcli"
+         jfrog "jfrogcli"
     }
 
     stages {
