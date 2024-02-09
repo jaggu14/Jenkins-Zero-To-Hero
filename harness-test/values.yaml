@@ -8,7 +8,7 @@ image:
   repository: preethisagar114376.jfrog.io/jaggu14-docker/demoapp
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "70"
+  tag: "71"
 
 imagePullSecrets: 
   - name: jfrog
