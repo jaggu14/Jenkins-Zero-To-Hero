@@ -46,7 +46,7 @@ pipeline {
                 )
             }
         }
-        stage('Build and Push Docker Image') {
+        stage('Build Image') {
             environment {
                 DOCKER_IMAGE = "preethisagar114376.jfrog.io/jaggu14-docker/demoapp:${BUILD_NUMBER}"
                 // DOCKERFILE_LOCATION = "java-maven-sonar-argocd-helm-k8s/spring-boot-app/Dockerfile"
