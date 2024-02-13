@@ -1,84 +1,77 @@
 pipeline {
-  agent any
-/*{
-    docker {
-      image 'abhishekf5/maven-abhishek-docker-agent:v1'
-      args '--user root -v /var/run/docker.sock:/var/run/docker.sock' // mount Docker socket to access the host's Docker daemon
+    agent any
+    tools {
+        // Uncomment and adjust if needed
+         jfrog "jfrogcli"
     }
-  }*/
-  stages {
-    stage('Checkout') {
-      steps {
-        sh 'echo passed'
-        //git branch: 'main', url: 'https://github.com/jaggu14/Jenkins-Zero-To-Hero.git'
-      }
-    }
-    stage('Build and Test') {
-      steps {
-        sh 'ls -ltr'
-        // build the project and create a JAR file
-        sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn clean package'
-      }
-    }
-    stage('Static Code Analysis') {
-      environment {
-        SONAR_URL = "http://20.39.224.131:9000"
-      }
-      steps {
-        withCredentials([string(credentialsId: 'SonarQube', variable: 'SONAR_AUTH_TOKEN')]) {
-          sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn sonar:sonar -Dsonar.login=$SONAR_AUTH_TOKEN -Dsonar.host.url=${SONAR_URL}'
-        }
-      }
-    }
-	stage('upload maven artifact to jfrog') {
-	                 steps {
-			   rtUpload(
-			     serverId: "artifactory",
-			     spec: '''{
-	                       "files": [
-			         {
-	                           "pattern": "*.war",
-			           "target" : "maven-demo/"
-	                         }
-			       ]
-	                      }''',
-			     )
-			   }
-			 }
-    stage('Build and Push Docker Image') {
-      environment {
-        DOCKER_IMAGE = "jaggu2224/myrepo:${BUILD_NUMBER}"
-        // DOCKERFILE_LOCATION = "java-maven-sonar-argocd-helm-k8s/spring-boot-app/Dockerfile"
-        REGISTRY_CREDENTIALS = credentials('docker-cred')
-      }
-      steps {
-        script {
-            sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && docker build -t ${DOCKER_IMAGE} .'
-            def dockerImage = docker.image("${DOCKER_IMAGE}")
-            docker.withRegistry('https://index.docker.io/v1/', "docker-cred") {
-                dockerImage.push()
+
+    stages {
+        stage('Checkout') {
+            steps {
+                sh 'echo passed'
+                //git branch: 'main', url: 'https://github.com/jaggu14/Jenkins-Zero-To-Hero.git'
             }
         }
-      }
-    }
-    stage('Update Deployment File') {
-        environment {
-            GIT_REPO_NAME = "Jenkins-Zero-To-Hero"
-            GIT_USER_NAME = "jaggu14"
+        stage('Build and Test') {
+            steps {
+                sh 'ls -ltr'
+                // build the project and create a JAR file
+                sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn clean package'
+            }
         }
-        steps {
-            withCredentials([string(credentialsId: 'GitHub', variable: 'GITHUB_TOKEN')]) {
-                sh '''
-                    git config user.email "jaggu.intha@gmail.com"
-                    git config user.name "jaggu14"
-                    BUILD_NUMBER=${BUILD_NUMBER}
-                    sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
-                    git add java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
-                    git commit -m "Update deployment image to version ${BUILD_NUMBER}"
-                    git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
-                '''
+        stage('Static Code Analysis') {
+            environment {
+                SONAR_URL = "http://20.39.224.131:9000"
+            }
+            steps {
+                withCredentials([string(credentialsId: 'SonarQube', variable: 'SONAR_AUTH_TOKEN')]) {
+                    sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn sonar:sonar -Dsonar.login=$SONAR_AUTH_TOKEN -Dsonar.host.url=${SONAR_URL}'
+                }
+            }
+        }
+        stage('Upload Maven Artifact to JFrog') {
+            steps {
+                // You may need a plugin for the rtUpload step
+                // Ensure you have installed the necessary plugin
+                rtUpload(
+                    serverId: "artifactory",
+                    spec: '''{
+                        "files": [
+                            {
+                                "pattern": "*.war",
+                                "target" : "maven-demo/"
+                            }
+                        ]
+                    }'''
+                )
+            }
+        }
+        stage('Build Image') {
+            environment {
+                DOCKER_IMAGE = "preethisagar114376.jfrog.io/jaggu14-docker/demoapp:${BUILD_NUMBER}"
+                // DOCKERFILE_LOCATION = "java-maven-sonar-argocd-helm-k8s/spring-boot-app/Dockerfile"
+                // REGISTRY_CREDENTIALS = credentials('docker-cred')
+            }
+            steps {
+                script {
+                    sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && docker build -t ${DOCKER_IMAGE} .'
+                    
+                    // Uncomment and adjust if needed
+                    // def dockerImage = docker.image("${DOCKER_IMAGE}")
+                    // docker.withRegistry('https://index.docker.io/v1/', "docker-cred") {
+                    //     dockerImage.push()
+                    // }
+                }
+            }
+        }
+        stage('Push Image to Artifactory') {
+            steps {
+                rtDockerPush(
+                    serverId: "artifactory",
+                    image: "preethisagar114376.jfrog.io/jaggu14-docker/demoapp:${BUILD_NUMBER}",
+                    targetRepo: 'jaggu14-docker'
+                )
             }
         }
     }
-  }
 }
