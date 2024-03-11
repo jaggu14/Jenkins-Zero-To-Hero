@@ -5,10 +5,10 @@
 replicaCount: 2
 
 image:
-  repository: preethisagar114376.jfrog.io/jaggu14-docker/demoapp
+  repository: jaggu2224/myrepo
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "71"
+  tag: "58"
 
 imagePullSecrets: 
   - name: jfrog
